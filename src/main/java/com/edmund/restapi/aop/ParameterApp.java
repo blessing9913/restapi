@@ -1,5 +1,6 @@
 package com.edmund.restapi.aop;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -12,6 +13,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -32,55 +34,71 @@ public class ParameterApp {
 				.collect(Collectors.joining(", "));
 	}
 
-	@Pointcut("within(com.edmund.restapi.users.controller..*)")
-	public void onRequest() {
-	}
+	@Pointcut("execution(* com.edmund.restapi.users.controller..*.*(..))")
+	public void cut() {}
 	
-	@Before("onRequest()")
+	@Before("cut()")
 	public void before(JoinPoint joinPoint) {
 		Gson gson = new Gson();
+		
+		// Request Method
+		MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
+		Method method = methodSignature.getMethod();
+		logger.info("\n");
+		logger.info("============ Request Method ============");
+		logger.info("Request Method : {}", method);
+		logger.info("============ Request Method ============");
+		logger.info("\n");
 		
 		// Request Parameter
 		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
 		Map<String, String[]> paramMap = request.getParameterMap();
 		if (paramMap.isEmpty() == false) {
-			logger.debug("============ Request Parameter ============");
-			logger.debug("Request Parameter : {}", paramMapToString(paramMap));
-			logger.debug("============ Request Parameter ============");
+			logger.info("\n");
+			logger.info("============ Request Parameter ============");
+			logger.info("Request Parameter : {}", paramMapToString(paramMap));
+			logger.info("============ Request Parameter ============");
+			logger.info("\n");
 		}
 
 		// Request Body
 		Object[] args = joinPoint.getArgs();
 		for(Object obj : args) {
-			logger.debug("============ Request Body ============");
-			logger.debug("Request Model Class : {}", obj.getClass().getSimpleName());
-			logger.debug("Request Body : {}", gson.toJson(obj));
-			logger.debug("============ Request Body ============");
+			logger.info("\n");
+			logger.info("============ Request Body ============");
+			logger.info("Request Dto : {}", obj.getClass().getSimpleName());
+			logger.info("Request Body : {}", gson.toJson(obj));
+			logger.info("============ Request Body ============");
+			logger.info("\n");
 		}
 	}
 	
-	@AfterReturning(value = "onRequest()", returning = "returnObj")
+	@AfterReturning(value = "cut()", returning = "returnObj")
 	public void afterReturn(JoinPoint joinPoint, Object returnObj) {
 		Gson gson = new Gson();
 		
-		logger.debug("============ Response ============");
-		logger.debug("Response Object : {}", gson.toJson(returnObj));
-		logger.debug("============ Response ============");
+		logger.info("\n");
+		logger.info("============ Response ============");
+		logger.info("Response Object : {}", gson.toJson(returnObj));
+		logger.info("============ Response ============");
+		logger.info("\n");
 	}
 
-	@Around("com.edmund.restapi.aop.ParameterApp.onRequest()")
-	public Object doLogging(ProceedingJoinPoint pjp) throws Throwable {
-		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
-
-		long start = System.currentTimeMillis();
-		try {
-			return pjp.proceed(pjp.getArgs());
-		} finally {
-			long end = System.currentTimeMillis();
-			
-			logger.debug("============ Request Info ============");
-			logger.debug("Result: {} {} < {} ({}ms)", request.getMethod(), request.getRequestURI(), request.getRemoteHost(), end - start);
-			logger.debug("============ Request Info ============");
-		}
-	}
+	
+//	@Around("com.edmund.restapi.aop.ParameterApp.onRequest()")
+//	public Object doLogging(ProceedingJoinPoint pjp) throws Throwable {
+//		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+//
+//		long start = System.currentTimeMillis();
+//		try {
+//			return pjp.proceed(pjp.getArgs());
+//		} finally {
+//			long end = System.currentTimeMillis();
+//			logger.info("\n");
+//			logger.info("============ Request Info ============");
+//			logger.info("Result: {} {} < {} ({}ms)", request.getMethod(), request.getRequestURI(), request.getRemoteHost(), end - start);
+//			logger.info("============ Request Info ============");
+//			logger.info("\n");
+//		}
+//	}
 }
